@@ -4,7 +4,8 @@ import numpy as np
 import random
 import os
 from sklearn.preprocessing import LabelEncoder
-
+from rdkit import Chem
+from feature import mol_to_feature
 from cfg import *
 
 
@@ -32,9 +33,6 @@ def main(tvsplit: float = 0.8,
     df_cell = pd.read_csv('gene_expression.csv')
     df_profiles = pd.read_csv('profiles.csv')
 
-    le = LabelEncoder()
-    le.fit(SMILES_SYMBOLS)
-
     cells = []
 
     labels_total = 0
@@ -57,15 +55,8 @@ def main(tvsplit: float = 0.8,
             # Get SMILES
             profile = df_profiles[df_cell['cname'] == cell].iloc[0]
             smiles = profile['smiles']
-            for key in SMILES_REPLACE:
-                smiles = smiles.replace(key, SMILES_REPLACE[key])
-            smiles = [c for c in smiles]
-            smiles = le.transform(smiles)
-            if len(smiles) < SMILES_LEN:
-                smiles = np.pad(smiles, [0, SMILES_LEN - len(smiles)])
-            elif len(smiles > SMILES_LEN):
-                smiles = smiles[0:SMILES_LEN]
-            smiles = smiles[..., np.newaxis]
+            mol = Chem.MolFromSmiles(smiles)
+            smiles = np.reshape(mol_to_feature(mol, -1, 400), (400, 42))
 
             X.append(np.concatenate([smiles, lines, maccs], axis=1))
             y.append(row['ri'])

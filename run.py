@@ -19,12 +19,10 @@ OPTIMIZER = RectifiedAdam(lr=LR)
 
 def build_keras():
 
-    ip = Input((SEQ_LEN, 3))
+    ip = Input((SEQ_LEN, 44))
 
     def f_lambda_smiles(x):
-        x = x[:, 0:SMILES_LEN, SMILES_IDX]
-        x = tf.cast(x, tf.int32)
-        x = tf.one_hot(x, axis=2, depth=SMILES_DIMS)
+        x = x[:, 0:SMILES_LEN, SMILES_IDX:42]
         return x
 
     def f_lambda_lines(x):
@@ -42,16 +40,17 @@ def build_keras():
 
     features = []
 
-    # Cell lines features
+    # Cell Lines
     l_dropout = Dropout(LINES_DROPOUT)
     l_dense1 = Dense(DIMS, activation='tanh', kernel_regularizer=l2(L2))
+
+    # forward
     lx = Lambda(lambda x: lambda_lines(x))(ip)
     if LINES_DROPOUT > 0:
         lx = l_dropout(lx)
     lx = l_dense1(lx)
     features.append(lx)
 
-    # SMILES
     if SMILES_ENABLE:
         s_conv1 = Conv1D(DIMS, 3, padding='same', activation='relu')
         s_ap1 = AveragePooling1D()
@@ -59,6 +58,7 @@ def build_keras():
         s_ap2 = AveragePooling1D()
         s_gmp = GlobalMaxPooling1D()
 
+        # forward
         sx = Lambda(lambda x: lambda_smiles(x))(ip)
         sx = s_conv1(sx)
         sx = s_ap1(sx)
@@ -72,6 +72,8 @@ def build_keras():
     if MACCS_ENABLE:
         m_dropout = Dropout(LINES_DROPOUT)
         m_dense1 = Dense(DIMS, activation='tanh', kernel_regularizer=l2(L2))
+
+        # forward
         mx = Lambda(lambda x: lambda_maccs(x))(ip)
         if MACCS_DROPOUT > 0:
             mx = m_dropout(mx)
