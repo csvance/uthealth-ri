@@ -53,13 +53,12 @@ def main(tvsplit: float = 0.8):
             maccs = maccs[..., np.newaxis]
 
             # Get SMILES
-            profile = df_profiles[df_cell['cname'] == row['cell']].iloc[0]
+            profile = df_profiles[df_cell['cname'] == cell].iloc[0]
             smiles = profile['smiles']
             for key in SMILES_REPLACE:
                 smiles = smiles.replace(key, SMILES_REPLACE[key])
             smiles = [c for c in smiles]
             smiles = le.transform(smiles)
-
             if len(smiles) < SMILES_LEN:
                 smiles = np.pad(smiles, [0, SMILES_LEN - len(smiles)])
             elif len(smiles > SMILES_LEN):
@@ -67,7 +66,6 @@ def main(tvsplit: float = 0.8):
             smiles = smiles[..., np.newaxis]
 
             X.append(np.concatenate([smiles, lines, maccs], axis=1))
-
             y.append(row['ri'])
 
             labels_total += 1

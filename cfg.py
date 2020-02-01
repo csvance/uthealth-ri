@@ -2,14 +2,13 @@ SESSION = 'n-estimators-5'
 
 ITERS = 0
 
-N_ESTIMATORS: int = 5
+N_ESTIMATORS: int = 50
 
 DIMS: int = 8
-BATCH_SIZE: int = 512
+BATCH_SIZE: int = 256
 EPOCHS: int = 10
 LR: float = 0.01
 L2: float = 0.
-KERNEL_D: int = 32
 
 SMILES_ENABLE: bool = True
 SMILES_DIMS: int = 42
