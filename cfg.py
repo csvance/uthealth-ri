@@ -2,11 +2,11 @@ SESSION = 'n-estimators-5'
 
 ITERS = 0
 
-N_ESTIMATORS: int = 50
+N_ESTIMATORS: int = 10
 
 DIMS: int = 8
-BATCH_SIZE: int = 256
-EPOCHS: int = 10
+BATCH_SIZE: int = 128
+EPOCHS: int = 5
 LR: float = 0.01
 L2: float = 0.
 

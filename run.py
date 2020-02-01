@@ -10,6 +10,7 @@ from rectified_adam import RectifiedAdam
 from utils import fix_tf
 
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.metrics import roc_auc_score
 
 from cfg import *
 
@@ -109,39 +110,59 @@ def build_adaboost():
     return model
 
 
-def main():
+def main(cmd: str = 'train', dummy_data: bool = True):
     fix_tf()
 
-    model = build_adaboost()
+    if not dummy_data:
+        pass
+    else:
+        xpa = np.round(np.random.uniform(0, 42.5, size=(2048, 400, 1)))
+        xpb = np.random.normal(size=(2048, 400, 2), loc=0.1, scale=4)
+        xp = np.concatenate([xpa, xpb], axis=-1)
+        yp = np.ones((2048, 1))
 
-    xpa = np.round(np.random.uniform(0, 42.5, size=(2048, 400, 1)))
-    xpb = np.random.normal(size=(2048, 400, 2), loc=0.1, scale=4)
-    xp = np.concatenate([xpa, xpb], axis=-1)
-    yp = np.ones((2048, 1))
+        xna = np.round(np.random.uniform(0.5, 43, size=(2048, 400, 1)))
+        xnb = np.random.normal(size=(2048, 400, 2), loc=-0.1, scale=4)
+        xn = np.concatenate([xna, xnb], axis=-1)
+        yn = np.zeros((2048, 1))
 
-    xna = np.round(np.random.uniform(0.5, 43, size=(2048, 400, 1)))
-    xnb = np.random.normal(size=(2048, 400, 2), loc=-0.1, scale=4)
-    xn = np.concatenate([xna, xnb], axis=-1)
-    yn = np.zeros((2048, 1))
+        X = np.concatenate([xp, xn], axis=0)
+        y = np.concatenate([yp, yn], axis=0)
 
-    X = np.concatenate([xp, xn], axis=0)
-    y = np.concatenate([yp, yn], axis=0)
+        indices = np.arange(len(X))
+        np.random.shuffle(indices)
 
-    indices = np.arange(len(X))
-    np.random.shuffle(indices)
+        X = X[indices]
+        y = y[indices]
 
-    Xs = X[indices]
-    ys = y[indices]
+    if cmd == 'train':
+        model = build_adaboost()
 
-    model.fit(Xs, ys)
+        model.fit(X, y)
+        y_pred = model.predict(X)
 
-    print("Accuracy: %.2f%%" % (100*model.score(Xs, ys)))
+        print("AUC-ROC: %f" % roc_auc_score(y, y_pred))
 
-    for eidx, est in enumerate(model.estimators_):
-        est.model.save('weights/%s_%d.k5' % (SESSION, eidx))
+        for n, est in enumerate(model.estimators_):
+            est.model.save_weights('weights/%s_%d.h5' % (SESSION, n))
 
+    elif cmd == 'val':
+
+        models = []
+        preds = np.zeros_like(y)
+
+        for n in range(0, N_ESTIMATORS):
+            model = build_keras()
+            model.load_weights('weights/%s_%d.h5' % (SESSION, n))
+            models.append(model)
+
+            preds = preds + model.predict(X)
+
+        y_pred = preds / N_ESTIMATORS
+
+        print("AUC-ROC: %f" % roc_auc_score(y, y_pred))
 
 
 if __name__ == '__main__':
-    main()
+    main('val')
 

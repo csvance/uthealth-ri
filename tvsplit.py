@@ -19,11 +19,13 @@ def npsave(path, arr: np.ndarray):
 
 @plac.annotations(
     tvsplit=('Percentage of training data', 'option', 'v', float),
+    seed=('Random seed', 'option', 's', 'int')
 )
-def main(tvsplit: float = 0.8):
+def main(tvsplit: float = 0.8,
+         seed: int = 0):
 
-    random.seed(0)
-    np.random.seed(0)
+    random.seed(seed)
+    np.random.seed(seed)
 
     df_maccs = pd.read_csv('fingerprint.csv')
     df_train = pd.read_csv('train.csv')
