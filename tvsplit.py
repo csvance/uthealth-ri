@@ -5,7 +5,6 @@ import random
 import os
 from rdkit import Chem
 from feature import mol_to_feature
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from cfg import *
 import pickle
 
@@ -24,7 +23,7 @@ def npsave(path, arr: np.ndarray):
     seed=('Random seed', 'option', 's', int),
     verbose=('Verbose output', 'option', 'V', int)
 )
-def main(tvsplit: float = 0.8,
+def main(tvsplit: float = 0.85,
          seed: int = 0,
          verbose: int = 0):
     random.seed(seed)
@@ -99,11 +98,10 @@ def main(tvsplit: float = 0.8,
                     if len(dfs) == 1:
                         maccs = df_maccs[df_maccs['dname'] == row['drug']].iloc[0]['fps']
                         maccs = np.array(maccs).astype(np.int32)
-                        features.append(maccs)
                     else:
-                        if verbose > 0:
-                            print("Missing MACCS for %s" % row['drug'])
-                        continue
+                        print("Missing MACCS for %s" % row['drug'])
+                        maccs = np.zeros((167,), dtype=np.int32)
+                    features.append(maccs)
 
                 if TARGET_ENABLE:
                     # Get target genes
@@ -115,10 +113,10 @@ def main(tvsplit: float = 0.8,
                             for xi in x:
                                 target[0, xi] = 1
                         target = target_nnf.transform(target)[0]
-                        features.append(target)
                     else:
-                        if verbose > 0:
-                            print("Missing target genes")
+                        print("Missing target genes for %s" % row['drug'])
+                        target = np.zeros((1, len(target_le.classes_, )))
+                    features.append(target)
 
                 if SMILES_ENABLE:
                     # Get SMILES
@@ -207,7 +205,7 @@ def main(tvsplit: float = 0.8,
                 npsave('%s_test.npy' % key, test[key])
                 test[key] = None
 
-    # run(stage='train')
+    run(stage='train')
     run(stage='test')
 
 

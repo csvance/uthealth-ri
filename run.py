@@ -4,6 +4,7 @@ from keras.layers import *
 from keras.models import Model
 from keras.wrappers.scikit_learn import KerasClassifier
 from keras.regularizers import l2
+from keras.optimizers import SGD
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -18,8 +19,10 @@ from sklearn.metrics import roc_auc_score
 
 from cfg import *
 
-OPTIMIZER = RectifiedAdam(lr=LR, decay=LR / EPOCHS)
+OPTIMIZER = RectifiedAdam(lr=LR, decay=LR / (EPOCHS * BATCHES))
 
+
+# OPTIMIZER = SGD(lr=LR, decay=LR/(EPOCHS*BATCHES), momentum=0.9)
 
 def fix_tf():
     # Fix Tensorflow Memory Usage
@@ -74,11 +77,15 @@ def build_keras():
     features.append(lx)
 
     if SMILES_ENABLE:
-        s_conv1 = Conv1D(SMILES_KERNEL_DIMS, 11, padding='same', kernel_regularizer=l2(L2))
+        s_conv1 = Conv1D(SMILES_KERNEL_DIMS, 11, padding='same',
+                         kernel_regularizer=l2(SMILES_L2),
+                         kernel_initializer=SMILES_KERNEL_INIT)
         s_bn1 = BatchNormalization()
         s_relu1 = ReLU()
         s_ap1 = AveragePooling1D(pool_size=5)
-        s_conv2 = Conv1D(SMILES_KERNEL_DIMS, 11, padding='same', kernel_regularizer=l2(L2))
+        s_conv2 = Conv1D(SMILES_KERNEL_DIMS, 11, padding='same',
+                         kernel_regularizer=l2(SMILES_L2),
+                         kernel_initializer=SMILES_KERNEL_INIT)
         s_bn2 = BatchNormalization()
         s_relu2 = ReLU()
         s_ap2 = AveragePooling1D(pool_size=5)
@@ -118,19 +125,28 @@ def build_keras():
         features.append(tx)
 
     j_concat = Concatenate()
-    j_hidden = Dense(HIDDEN_DIMS, activation='tanh')
+    j_dropout = Dropout(HIDDEN_DROPOUT)
+    j_hidden1 = Dense(HIDDEN_DIMS,
+                      kernel_regularizer=l2(HIDDEN_L2),
+                      kernel_initializer=HIDDEN_KERNEL_INIT)
+    j_bn1 = BatchNormalization()
+    j_act1 = ReLU()
     j_cls = Dense(1, activation='sigmoid')
 
+    # Forward
     jx = j_concat(features)
     if HIDDEN_DIMS > 0:
-        jx = j_hidden(jx)
+        jx = j_hidden1(jx)
+        jx = j_bn1(jx)
+        jx = j_act1(jx)
 
     y = j_cls(jx)
 
     model = Model(inputs=ip, outputs=y)
     model.compile(optimizer=OPTIMIZER,
                   loss='binary_crossentropy',
-                  metrics=['acc'])
+                  metrics=['acc'],
+                  loss_weights=[1e5])
 
     if SUMMARY:
         model.summary()
